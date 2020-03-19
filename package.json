@@ -1,0 +1,16 @@
+{
+  "name": "@bucky24/redux-websocket",
+  "version": "0.1.0",
+  "description": "Uses a websocket to sync redux actions to a server and to other clients to keep them in sync.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Bucky24/redux-websocket.git"
+  },
+  "author": "Bucky24",
+  "license": "MIT",
+  "homepage": "https://github.com/Bucky24/redux-websocket#readme"
+}
