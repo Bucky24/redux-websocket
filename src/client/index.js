@@ -1,5 +1,5 @@
 
-class WebpackClient {
+class ReduxWebSocketClient {
 	constructor(url, protocol) {
 		this.connect(url, protocol);
 	}
@@ -59,4 +59,4 @@ class WebpackClient {
 	}
 }
 
-export default WebpackClient;
+export default ReduxWebSocketClient;
