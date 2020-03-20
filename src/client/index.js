@@ -1,7 +1,34 @@
 
 class ReduxWebSocketClient {
-	constructor(url, protocol) {
+	constructor(url, protocol, sessionID) {
+		this.sessionID = sessionID;
 		this.connect(url, protocol);
+		
+		this.eventHandlers = {};
+	}
+	
+	on(event, cb) {
+		if (!this.eventHandlers[event]) {
+			this.eventHandlers[event] = [];
+		}
+		this.eventHandlers[event].push(cb);
+	}
+	
+	triggerEvent(event, data) {
+		if (!this.eventHandlers[event]) {
+			return;
+		}
+		
+		let response;
+		this.eventHandlers[event].forEach((cb) => {
+			response = cb(data);
+		});
+		
+		if (event === "stateReceived") {
+			
+		}
+		
+		return response;
 	}
 	
 	connect(url, protocol) {
@@ -13,11 +40,20 @@ class ReduxWebSocketClient {
         webSocket.onopen = (event) => {
 			console.log('Connected to websocket');
 			this._connected = true;
+			
+			this.triggerEvent('connected');
+			
+			this.send({
+				messageType: 'getState'
+			});
         };
 		
         webSocket.onclose = (event) => {
 			this._connected = false;
-			this.connect(url, protocol);
+			// reattempt connection after a delay
+			setTimeout(() => {
+				this.connect(url, protocol);
+			}, 1000);
         };
 		
         webSocket.onerror = (event) => {
@@ -26,16 +62,39 @@ class ReduxWebSocketClient {
 		
 		webSocket.onmessage = (event) => {
 			const data = JSON.parse(event.data);
-			this._dispatch({
-				...data,
-				__webpack_processed: true,
-			});
+			if (data.messageType === 'redux_action') {
+				this._store.dispatch({
+					...data.action,
+					__webpack_processed: true,
+				});
+			} else if (data.messageType === "getState") {
+				// we know at this point the server had no state for us,
+				// so we should just continue forward
+				if (!this._store) {
+					console.log('getting state without store');
+					const store = this.triggerEvent("stateReceived");
+					this._store = store;
+				}
+				//console.log('state requested', store.getState());
+				this.send({
+					messageType: "setState",
+					state: this._store.getState()
+				});
+			} else if (data.messageType === "setState") {
+				// emit event on state received
+				console.log('we have received state', data.state);
+				this.triggerEvent("stateReceived", data.state);
+			}
 		}
 	}
 	
 	send(data) {
 		if (this._connected) {
-			this._socket.send(data);
+			const workingData = {
+				...data,
+				_websocket_session: this.sessionID,
+			}
+			this._socket.send(JSON.stringify(workingData));
 		}
 	}
 	
@@ -47,11 +106,15 @@ class ReduxWebSocketClient {
  	}
 	
 	getMiddleware() {
-		return ({ getState, dispatch }) => {
-			this._dispatch = dispatch;
+		return (store) => {
+			this._store = store;
 			return next => action => {
 				if (!action.__webpack_processed) {
-					this.send(JSON.stringify(action));
+					const actionObj = {
+						messageType: 'redux_action',
+						action
+					};
+					this.send(actionObj);
 				}
 				return next(action);
 			}

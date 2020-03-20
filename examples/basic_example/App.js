@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 
@@ -8,6 +8,10 @@ import styles from './styles.css';
 
 const App = ({ sample, setSample }) => {
 	const [text, setText] = useState(sample)
+	
+	useEffect(() => {
+		setText(sample);
+	}, [sample]);
 	
 	return (<div className={styles.appRoot}>
 		<div>Test App Page: { sample }</div>
