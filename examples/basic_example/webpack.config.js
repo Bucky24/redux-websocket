@@ -9,6 +9,11 @@ module.exports = {
 		path: path.resolve(__dirname, 'build'),
 		filename: 'main.bundle.js'
 	},
+	resolve: {
+		alias: {
+			'@bucky24/redux-websocket': path.resolve(__dirname, '../../src/index.js')
+		}
+	},
 	module: {
 		rules: [
 			{

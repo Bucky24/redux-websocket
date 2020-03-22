@@ -1,0 +1,12 @@
+So when the first client for the session ID connects, it is set as the master session ID. Immediately after, the server asks the master connection for state via "getState".
+
+The master connection uses this as a flag to realize it needs to init the store with the default state. After doing this, it fires a "setState" command to the server with this state.
+
+When another connection joins, the server again requests "getState" from the master connection, which takes its current state (without recreating the store this time) and sends it back with a "setState" command. The server receives "setState" and broadcasts a "setState" command to every other connection on that session.
+
+The sessions receive "setState" and set their own state. If they need to init their stores, they do so.
+
+If the master connection drops, the next connection in the list becomes the master connection, and is responsible for sending state. So as long as a single connection is active, state is maintained somewhere.
+
+calling setIgnoredActions with a list of actions will cause those actions to be ignored when triggered, they will not be synced across the websocket.
+
