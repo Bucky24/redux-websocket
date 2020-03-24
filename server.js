@@ -89,7 +89,6 @@ const createSocket = (wss) => {
 				} else if (messageObj.messageType === "setUserData") {
 					const connectionID = messageObj.connectionID;
 					console.log(`Connection ${connectionID} with state ${sessionID} is pushing their user state`);
-					console.log(messageObj.state);
 					connectionsBySession[sessionID].forEach(({ conn, id }) => {
 						conn.send(JSON.stringify({
 							_sebsocket_session: sessionID,
@@ -98,6 +97,8 @@ const createSocket = (wss) => {
 							connectionID: connectionID,
 						}));
 					});
+				} else if (messageObj.messageType === "clientLog") {
+					console.log(`Got client log from ${connectionID}: ${JSON.stringify(messageObj.data)}`);
 				}
 			} catch (error) {
 				console.error('Error processing message', message, error);

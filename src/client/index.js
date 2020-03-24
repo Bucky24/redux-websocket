@@ -220,6 +220,13 @@ class ReduxWebSocketClient {
 		}
 	}
 	
+	sendLog(data) {
+		this.send({
+			messageType: "clientLog",
+			data,
+		});
+	}
+	
 	shutdown() {
 		if (this._client) {
 			this._client.disconnect();
@@ -231,7 +238,7 @@ class ReduxWebSocketClient {
 		return (store) => {
 			this._store = store;
 			return next => action => {
-				if (!action.__webpack_processed && !action.type.includes('__WEBSOCKET__')) {		
+				if (!action.__webpack_processed && !action.type?.includes('__WEBSOCKET__')) {		
 					if (
 						!this.ignoredActions.includes(action.type) &&
 						!this.userDataActions.includes(action.type)
