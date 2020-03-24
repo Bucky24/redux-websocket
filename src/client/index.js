@@ -1,7 +1,14 @@
-import { setUserData, getUserData, removeUser } from '../webSocketReducer';
+import {
+	setUserData,
+	getUserData,
+	removeUser,
+	setConnectionID,
+	getConnectionID,
+	setConnected,
+} from '../webSocketReducer';
 
 class ReduxWebSocketClient {
-	constructor(url, protocol, sessionID) {
+	constructor(url, protocol, sessionID, debug=false) {
 		this.sessionID = sessionID;
 		this.connect(url, protocol);
 		
@@ -11,6 +18,8 @@ class ReduxWebSocketClient {
 		this.connectionID = null;
 		this.userDataActions = [];
 		this.userDataTree = [];
+		this.debug = debug;
+		this.ignoredTree = [];
 	}
 	
 	on(event, cb) {
@@ -45,6 +54,10 @@ class ReduxWebSocketClient {
 		this.userDataTree = dataTree;
 	}
 	
+	setIgnoredTree(ignoredTree) {
+		this.ignoredTree = ignoredTree;
+	}
+	
 	setReducers(reducers) {
 		this.rootReducer = reducers;
 	}
@@ -69,6 +82,10 @@ class ReduxWebSocketClient {
 		
         webSocket.onclose = (event) => {
 			this._connected = false;
+			if (this._store) {
+				this._store.dispatch(setConnectionID(null));
+				this._store.dispatch(setConnected(false));
+			}
 			// reattempt connection after a delay
 			setTimeout(() => {
 				this.connect(url, protocol);
@@ -82,13 +99,13 @@ class ReduxWebSocketClient {
 		webSocket.onmessage = (event) => {
 			const data = JSON.parse(event.data);
 			if (data.messageType === 'redux_action') {
-				console.log('got redux action', data.action);
+				if (this.debug) console.log('got redux action', data.action);
 				this._store.dispatch({
 					...data.action,
 					__webpack_processed: true,
 				});
 			} else if (data.messageType === 'redux_user_action') {
-				console.log('got redux user action from ', data.connectionID);
+				if (this.debug) console.log('got redux user action from ', data.connectionID);
 				// run the reducers manually on the specific user's data tree
 				const currentState = this._store.getState();
 				const userData = getUserData(currentState);
@@ -127,8 +144,14 @@ class ReduxWebSocketClient {
 				state = {
 					...state,
 				};
+				this._store.dispatch(setConnectionID(this.connectionID));
+				this._store.dispatch(setConnected(true));
 				// now strip out all user data
 				for (const dataKey of this.userDataTree) {
+					delete state[dataKey];
+				}
+				// also strip ignored data
+				for (const dataKey of this.ignoredTree) {
 					delete state[dataKey];
 				}
 				this.send({
@@ -143,6 +166,8 @@ class ReduxWebSocketClient {
 					const store = this.triggerEvent("stateReceived", data.state);
 					this._store = store;
 				}
+				this._store.dispatch(setConnectionID(this.connectionID));
+				this._store.dispatch(setConnected(true));
 			} else if (data.messageType === 'userLeft') {
 				console.log("Got message that user", data.connectionID, 'left');
 				this._store.dispatch(removeUser(data.connectionID));

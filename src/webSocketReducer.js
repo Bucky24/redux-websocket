@@ -1,10 +1,15 @@
 export const Constants = {
 	SET_USER_DATA: '__WEBSOCKET__/SET_USER_DATA',
 	REMOVE_USER: '__WEBSOCKET__/REMOVE_USER',
+	SET_MY_ID: '__WEBSOCKET__/SET_MY_ID',
+	SET_CONNECTED: '__WEBSOCKET__/SET_CONNECTED',
 };
 
 const defaultState = {
-	userData: {}
+	userData: {},
+	connectionData: {
+		connected: false,
+	},
 };
 
 export default (state = defaultState, action) => {
@@ -28,6 +33,22 @@ export default (state = defaultState, action) => {
 			...state,
 			userData: newUsers,
 		};
+	} else if (action.type === Constants.SET_MY_ID) {
+		return {
+			...state,
+			connectionData: {
+				...state.connectionData,
+				connectionID: action.id,
+			},
+		};
+	} else if (action.type === Constants.SET_CONNECTED) {
+		return {
+			...state,
+			connectionData: {
+				...state.connectionData,
+				connected: action.connected,
+			},
+		};
 	} else {
 		return state;
 	}
@@ -50,8 +71,31 @@ export const removeUser = (id) => {
 	};
 }
 
+export const setConnectionID = (id) => {
+	return {
+		type: Constants.SET_MY_ID,
+		id,
+	};
+}
+
+export const setConnected = (connected) => {
+	return {
+		type: Constants.SET_CONNECTED,
+		connected,
+	};
+}
+
+
 // Getters
 
 export const getUserData = (state) => {
 	return state.__websocket.userData;
+}
+
+export const getConnectionID = (state) => {
+	return state.__websocket.connectionData.connectionID;
+}
+
+export const getConnected = (state) => {
+	return state.__websocket.connectionData.connected;
 }
