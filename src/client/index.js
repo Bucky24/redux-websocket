@@ -5,6 +5,7 @@ import {
 	setConnectionID,
 	getConnectionID,
 	setConnected,
+	clearUserData,
 } from '../webSocketReducer';
 
 class ReduxWebSocketClient {
@@ -20,6 +21,7 @@ class ReduxWebSocketClient {
 		this.userDataTree = [];
 		this.debug = debug;
 		this.ignoredTree = [];
+		this.pushUserState = false;
 	}
 	
 	on(event, cb) {
@@ -62,6 +64,20 @@ class ReduxWebSocketClient {
 		this.rootReducer = reducers;
 	}
 	
+	doPushUserState() {
+		const currentState = this._store.getState();
+		const userData = {};
+		this.userDataTree.forEach((tree) => {
+			userData[tree] = currentState[tree];
+		});
+		const id = getConnectionID(currentState);
+		this.send({
+			messageType: 'setUserData',
+			connectionID: id,
+			state: userData,
+		});
+	}
+	
 	connect(url, protocol) {
 		const fullUrl = url + '/' + protocol;
 		console.log('Attempting connection to', fullUrl);
@@ -78,6 +94,12 @@ class ReduxWebSocketClient {
 			this.send({
 				messageType: 'getState'
 			});
+			
+			// if we have a store already, we're reconnecting.
+			// repush the user data
+			if (this._store) {
+				this.pushUserState = true;
+			}
         };
 		
         webSocket.onclose = (event) => {
@@ -85,6 +107,7 @@ class ReduxWebSocketClient {
 			if (this._store) {
 				this._store.dispatch(setConnectionID(null));
 				this._store.dispatch(setConnected(false));
+				this._store.dispatch(clearUserData());
 			}
 			// reattempt connection after a delay
 			setTimeout(() => {
@@ -158,6 +181,7 @@ class ReduxWebSocketClient {
 					messageType: "setState",
 					state,
 				});
+				this.doPushUserState();
 			} else if (data.messageType === "setState") {
 				// emit event on state received
 				this.connectionID = data.connectionID;
@@ -168,9 +192,20 @@ class ReduxWebSocketClient {
 				}
 				this._store.dispatch(setConnectionID(this.connectionID));
 				this._store.dispatch(setConnected(true));
+				
+				if (this.pushUserState) {
+					this.doPushUserState();
+					this.pushUserState = false;
+				}
 			} else if (data.messageType === 'userLeft') {
 				console.log("Got message that user", data.connectionID, 'left');
 				this._store.dispatch(removeUser(data.connectionID));
+			} else if (data.messageType === 'setUserData') {
+				console.log("Got message with user state for ", data.connectionID);
+				const newUserData = setUserData(data.connectionID, data.state);
+				this._store.dispatch(newUserData);
+			} else {
+				console.log('Unknown message of type', data.messageType);
 			}
 		}
 	}

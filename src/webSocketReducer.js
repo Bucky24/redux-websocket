@@ -3,6 +3,7 @@ export const Constants = {
 	REMOVE_USER: '__WEBSOCKET__/REMOVE_USER',
 	SET_MY_ID: '__WEBSOCKET__/SET_MY_ID',
 	SET_CONNECTED: '__WEBSOCKET__/SET_CONNECTED',
+	CLEAR_USER_DATA: '__WEBSOCKET__/CLEAR_USER_DATA',
 };
 
 const defaultState = {
@@ -49,6 +50,11 @@ export default (state = defaultState, action) => {
 				connected: action.connected,
 			},
 		};
+	} else if (action.type === Constants.CLEAR_USER_DATA) {
+		return {
+			...state,
+			userData: {},
+		};
 	} else {
 		return state;
 	}
@@ -82,6 +88,12 @@ export const setConnected = (connected) => {
 	return {
 		type: Constants.SET_CONNECTED,
 		connected,
+	};
+}
+
+export const clearUserData = () => {
+	return {
+		type: Constants.CLEAR_USER_DATA,
 	};
 }
 

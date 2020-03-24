@@ -42,8 +42,10 @@ const createSocket = (wss) => {
 						conn.send(message);
 					});
 				} else if (messageObj.messageType === 'getState') {
+					let isNewSession = false;
 					if (!connectionsBySession[sessionID]) {
 						connectionsBySession[sessionID] = [];
+						isNewSession = true;
 					}
 					
 					connectionID = connection_id;
@@ -66,6 +68,7 @@ const createSocket = (wss) => {
 						_websocket_session: sessionID,
 						messageType: "getState",
 						connectionID: sessionMaster[sessionID].id,
+						newSession: isNewSession,
 					}));
 				} else if (messageObj.messageType === "setState") {
 					// push the state to all connected clients
@@ -82,6 +85,18 @@ const createSocket = (wss) => {
 								connectionID: id,
 							}));
 						}
+					});
+				} else if (messageObj.messageType === "setUserData") {
+					const connectionID = messageObj.connectionID;
+					console.log(`Connection ${connectionID} with state ${sessionID} is pushing their user state`);
+					console.log(messageObj.state);
+					connectionsBySession[sessionID].forEach(({ conn, id }) => {
+						conn.send(JSON.stringify({
+							_sebsocket_session: sessionID,
+							messageType: 'setUserData',
+							state: messageObj.state,
+							connectionID: connectionID,
+						}));
 					});
 				}
 			} catch (error) {
