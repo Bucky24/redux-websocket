@@ -1,4 +1,4 @@
-import ReduxWebSocketClient from './client';
+import ReduxWebSocketClient, { SpecialActionType } from './client';
 import WebSocketReducer, {
 	Constants,
 	getUserData,
@@ -11,6 +11,7 @@ import WebSocketReducer, {
 
 export {
 	ReduxWebSocketClient,
+	SpecialActionType,
 	WebSocketReducer,
 	Constants,
 	setUserData,

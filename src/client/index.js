@@ -8,20 +8,63 @@ import {
 	clearUserData,
 } from '../webSocketReducer';
 
+export const SpecialActionType = {
+	IGNORED: 'ignored',
+	USER_DATA: 'user_data',
+	FORCE_USER_DATA: 'force_user_data',
+};
+
 class ReduxWebSocketClient {
-	constructor(url, protocol, sessionID, debug=false) {
+	constructor(url, protocol, sessionID, settings={}) {
 		this.sessionID = sessionID;
 		this.connect(url, protocol);
 		
 		this.eventHandlers = {};
-		this.ignoredActions = [];
 		this.rootReducer = null;
 		this.connectionID = null;
+		this.pushUserState = false;
+		
+		this.debug = !!settings.debug;
+		
+		this.ignoredActions = [];
+		this.ignoredTree = [];
 		this.userDataActions = [];
 		this.userDataTree = [];
-		this.debug = debug;
-		this.ignoredTree = [];
-		this.pushUserState = false;
+		this.forceUserDataActions = [];
+		this.forceUserDataTree = [];
+		
+		settings.specialActions.forEach((action) => {
+			const { type, actions, tree } = action;
+			
+			if (type === SpecialActionType.IGNORED) {
+				this.ignoredActions = [
+					...this.ignoredActions,
+					...actions,
+				];
+				this.ignoredTree = [
+					...this.ignoredTree,
+					...tree,
+				]
+			} else if (type === SpecialActionType.USER_DATA) {
+				this.userDataActions = [
+					...this.userDataActions,
+					...actions,
+				];
+				this.userDataTree = [
+					...this.userDataTree,
+					...tree,
+				]
+			} else if (type === SpecialActionType.FORCE_USER_DATA) {
+				this.forceUserDataActions = [
+					...this.forceUserDataActions,
+					...actions,
+				];
+				this.forceUserDataTree = [
+					...this.forceUserDataTree,
+					...tree,
+				]
+			}
+		})
 	}
 	
 	on(event, cb) {
@@ -44,22 +87,6 @@ class ReduxWebSocketClient {
 		return response;
 	}
 	
-	setIgnoredActions(ignoredActions) {
-		this.ignoredActions = ignoredActions;
-	}
-	
-	setUserDataActions(dataActions) {
-		this.userDataActions = dataActions;
-	}
-	
-	setUserDataTree(dataTree) {
-		this.userDataTree = dataTree;
-	}
-	
-	setIgnoredTree(ignoredTree) {
-		this.ignoredTree = ignoredTree;
-	}
-	
 	setReducers(reducers) {
 		this.rootReducer = reducers;
 	}
@@ -70,7 +97,14 @@ class ReduxWebSocketClient {
 		this.userDataTree.forEach((tree) => {
 			userData[tree] = currentState[tree];
 		});
+		this.forceUserDataTree.forEach((tree) => {
+			userData[tree] = currentState[tree];
+		});
 		const id = getConnectionID(currentState);
+		
+		if (this.debug) {
+			console.log('Sending user state', userData);
+		}
 		this.send({
 			messageType: 'setUserData',
 			connectionID: id,
@@ -142,7 +176,10 @@ class ReduxWebSocketClient {
 				
 				// clean up all non user data
 				Object.keys(result).forEach((key) => {
-					if (!this.userDataTree.includes(key)) {
+					if (
+						!this.userDataTree.includes(key) &&
+						!this.forceUserDataTree.includes(key)
+					) {
 						delete result[key];
 					}
 				})
@@ -177,6 +214,10 @@ class ReduxWebSocketClient {
 				for (const dataKey of this.ignoredTree) {
 					delete state[dataKey];
 				}
+				// also strip force user data
+				for (const dataKey of this.forceUserDataTree) {
+					delete state[dataKey];
+				}
 				this.send({
 					messageType: "setState",
 					state,
@@ -202,7 +243,13 @@ class ReduxWebSocketClient {
 				this._store.dispatch(removeUser(data.connectionID));
 			} else if (data.messageType === 'setUserData') {
 				console.log("Got message with user state for ", data.connectionID);
-				const newUserData = setUserData(data.connectionID, data.state);
+				const newData = {
+					...data.state,
+				};
+				if (this.debug) {
+					console.log('Data is', newData);
+				}
+				const newUserData = setUserData(data.connectionID, newData);
 				this._store.dispatch(newUserData);
 			} else {
 				console.log('Unknown message of type', data.messageType);
@@ -241,7 +288,8 @@ class ReduxWebSocketClient {
 				if (!action.__webpack_processed && action.type && !action.type.includes('__WEBSOCKET__')) {		
 					if (
 						!this.ignoredActions.includes(action.type) &&
-						!this.userDataActions.includes(action.type)
+						!this.userDataActions.includes(action.type) &&
+						!this.forceUserDataActions.includes(action.type)
 					) {
 						const actionObj = {
 							messageType: 'redux_action',
@@ -257,6 +305,14 @@ class ReduxWebSocketClient {
 							connectionID: this.connectionID,
 						}
 						this.send(actionObj);
+					}
+					
+					if (this.forceUserDataActions.includes(action.type)) {
+						// do this push as soon as redux updates
+						setTimeout(() => {
+							this.doPushUserState();
+						}, 1);
+						return next(action);
 					}
 				}
 				
