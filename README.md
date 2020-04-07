@@ -40,7 +40,7 @@ Setting up the redux client is a bit more complex. The client must be aware of t
 In order to create a simple redux-websocket client with a redux store, use the following code:
 
 ```
-import ReactWebSocketClient from "../../src/client";
+import { ReduxWebSocketClient, SpecialActionType } "@bucky24/redux-websocket";
 import React from 'react';
 import { Provider } from 'react-redux';
 import { createStore, applyMiddleware } from 'redux';
@@ -84,7 +84,7 @@ Actions that are ignored are not broadcast to other clients, and state tree that
 To add ignored state, you'll need to do the following in the client:
 
 ```
-import ReactWebSocketClient, { SpecialActionType } from "../../src/client";
+import { ReduxWebSocketClient, SpecialActionType } from "@bucky24/redux-websocket";
 // ... other imports
 
 const socketHandler = new ReactWebSocketClient(url, protocol, session, {
@@ -104,7 +104,7 @@ Actions that are part of the user state are still broadcast to other clients, bu
 
 To add user state, you'll need to add the following to the client init code:
 ```
-import ReactWebSocketClient, { SpecialActionType } from "../../src/client";
+import { ReduxWebSocketClient, SpecialActionType } from "@bucky24/redux-websocket";
 // ... other imports
 
 const socketHandler = new ReactWebSocketClient(url, protocol, session, {
@@ -122,7 +122,7 @@ You'll also need to add the websocket reducer into your reducer root, as redux-w
 
 ```
 import { combineReducers } from 'redux';
-import { WebSocketReducer} from '@bucky24/redux-websocket';
+import { WebSocketReducer } from '@bucky24/redux-websocket';
 import sample from './store';
 
 // reducers here
@@ -180,4 +180,4 @@ export default connect(mapStateToProps, mapDispatchToProps)(App);
 
 The main module I've seen that appears similar is https://github.com/giantmachines/redux-websocket
 
-The main difference here is that redux-websocket uses redux to control the websocket, while redux-websocket uses the websocket to control redux.
+The main difference here is that @giantmatchines/redux-websocket (and similar packages) uses redux to control the websocket, while @bucky24/redux-websocket uses the websocket to control redux.

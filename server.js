@@ -99,6 +99,11 @@ const createSocket = (wss) => {
 					});
 				} else if (messageObj.messageType === "clientLog") {
 					console.log(`Got client log from ${connectionID}: ${JSON.stringify(messageObj.data)}`);
+				} else if (messageObj.messageType === "ping") {
+					ws.send(JSON.stringify({
+						messageType: 'pong',
+						time: messageObj.time,
+					}));
 				}
 			} catch (error) {
 				console.error('Error processing message', message, error);

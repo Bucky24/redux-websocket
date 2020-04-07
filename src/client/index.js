@@ -14,6 +14,8 @@ export const SpecialActionType = {
 	FORCE_USER_DATA: 'force_user_data',
 };
 
+const PING_SEC = 5;
+
 class ReduxWebSocketClient {
 	constructor(url, protocol, sessionID, settings={}) {
 		this.sessionID = sessionID;
@@ -134,6 +136,13 @@ class ReduxWebSocketClient {
 			if (this._store) {
 				this.pushUserState = true;
 			}
+			
+			this._ping_interval = setInterval(() => {
+				this.send({
+					messageType: 'ping',
+					time: (new Date()).getTime(),
+				});
+			}, PING_SEC * 1000);
         };
 		
         webSocket.onclose = (event) => {
@@ -142,6 +151,10 @@ class ReduxWebSocketClient {
 				this._store.dispatch(setConnectionID(null));
 				this._store.dispatch(setConnected(false));
 				this._store.dispatch(clearUserData());
+			}
+			if (this._ping_interval) {
+				clearInterval(this._ping_interval);
+				this._ping_inteval = null;
 			}
 			// reattempt connection after a delay
 			setTimeout(() => {
@@ -251,6 +264,18 @@ class ReduxWebSocketClient {
 				}
 				const newUserData = setUserData(data.connectionID, newData);
 				this._store.dispatch(newUserData);
+			} else if (data.messageType === 'pong') {
+				const time = data.time;
+				if (time) {
+					const nowTime = (new Date()).getTime();
+					if (this.debug) {
+						console.log('Ping took', nowTime - time, 'ms');
+					}
+				} else {
+					if (this.debug) {
+						console.log('Got ping with no time');
+					}
+				}
 			} else {
 				console.log('Unknown message of type', data.messageType);
 			}
