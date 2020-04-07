@@ -110,7 +110,9 @@ const createSocket = (wss) => {
 			connections.splice(index, 1);
 			
 			const sessionConnections = connectionsBySession[mySession];
-			
+			if (!sessionConnections) {
+				console.log(`Connection closed for "${mySession}". No connection array found.`);
+			}
 			const index2 = sessionConnections.findIndex(({ conn }) => {
 				return conn === ws;
 			});
