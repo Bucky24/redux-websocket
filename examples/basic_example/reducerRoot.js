@@ -11,6 +11,4 @@ const reducers = {
 	__websocket: WebSocketReducer,
 };
 
-const defaultState = {};
-
 export default combineReducers(reducers);
