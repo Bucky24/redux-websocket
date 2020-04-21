@@ -17,8 +17,11 @@ export const SpecialActionType = {
 const PING_SEC = 5;
 
 class ReduxWebSocketClient {
-	constructor(url, protocol, sessionID, settings={}) {
-		this.sessionID = sessionID;
+	constructor(url, protocol, settings={}) {
+		this.sessionID = null;
+		this._connected = false;
+		this._authenticated = false;
+
 		this.connect(url, protocol);
 		
 		this.eventHandlers = {};
@@ -93,6 +96,11 @@ class ReduxWebSocketClient {
 		this.rootReducer = reducers;
 	}
 	
+	setAuthentication(code) {
+		this.sessionID = code;
+		this.doAuth();
+	}
+	
 	doPushUserState() {
 		const currentState = this._store.getState();
 		const userData = {};
@@ -114,6 +122,37 @@ class ReduxWebSocketClient {
 		});
 	}
 	
+	// This function should be called once a sessionID has been set.
+	doAuth() {
+		this.send({
+			messageType: 'getState'
+		});
+		
+		// if we have a store already, we're reconnecting.
+		// repush the user data
+		if (this._store) {
+			this.pushUserState = true;
+		}
+	}
+	
+	handleConnection() {
+		console.log('Connected to websocket');
+		this._connected = true;
+		
+		this.triggerEvent('connected');
+		
+		if (this.sessionID) {
+			this.doAuth();
+		}
+		
+		this._ping_interval = setInterval(() => {
+			this.send({
+				messageType: 'ping',
+				time: (new Date()).getTime(),
+			});
+		}, PING_SEC * 1000);
+	}
+	
 	connect(url, protocol) {
 		const fullUrl = url + '/' + protocol;
 		console.log('Attempting connection to', fullUrl);
@@ -122,27 +161,7 @@ class ReduxWebSocketClient {
 		this._connected = false;
 		
         webSocket.onopen = (event) => {
-			console.log('Connected to websocket');
-			this._connected = true;
-			
-			this.triggerEvent('connected');
-			
-			this.send({
-				messageType: 'getState'
-			});
-			
-			// if we have a store already, we're reconnecting.
-			// repush the user data
-			if (this._store) {
-				this.pushUserState = true;
-			}
-			
-			this._ping_interval = setInterval(() => {
-				this.send({
-					messageType: 'ping',
-					time: (new Date()).getTime(),
-				});
-			}, PING_SEC * 1000);
+			this.handleConnection();
         };
 		
         webSocket.onclose = (event) => {
@@ -203,10 +222,14 @@ class ReduxWebSocketClient {
 				this.connectionID = data.connectionID;
 				// we know at this point the server had no state for us,
 				// so we should just continue forward
+				this._authenticated = true;
 				console.log('Got a request for state. This is master connection with id', this.connectionID);
 				if (!this._store) {
 					console.log('Getting state without store');
-					const store = this.triggerEvent("stateReceived");
+					const store = this.triggerEvent("stateReceived", {
+						initialState: {},
+						reducers: this.rootReducer,
+					});
 					this._store = store;
 				}
 				if (!this._store) {
@@ -238,10 +261,14 @@ class ReduxWebSocketClient {
 				this.doPushUserState();
 			} else if (data.messageType === "setState") {
 				// emit event on state received
+				this._authenticated = true;
 				this.connectionID = data.connectionID;
 				console.log('We have received state. Our connection id is', this.connectionID);
 				if (!this._store) {
-					const store = this.triggerEvent("stateReceived", data.state);
+					const store = this.triggerEvent("stateReceived", {
+						initialState: data.state,
+						reducers: this.rootReducer,
+					});
 					this._store = store;
 				}
 				this._store.dispatch(setConnectionID(this.connectionID));

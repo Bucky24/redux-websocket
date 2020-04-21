@@ -53,11 +53,12 @@ const url = "ws://localhost:5000";
 const protocol = "protocol";
 const sessionID = "session";
 
-const socketHandler = new ReactWebSocketClient(url, protocol, sessionID);
+const socketHandler = new ReactWebSocketClient(url, protocol);
 
+socketHandler.setAuthentication(sessionID);
 socketHandler.setReducers(reducers);
 
-socketHandler.on('stateReceived', (initialState) => {
+socketHandler.on('stateReceived', ({ initialState, reducers }) => {
 	const store = createStore(
 		reducers, initialState, applyMiddleware(socketHandler.getMiddleware())
 	);
@@ -87,7 +88,7 @@ To add ignored state, you'll need to do the following in the client:
 import { ReduxWebSocketClient, SpecialActionType } from "@bucky24/redux-websocket";
 // ... other imports
 
-const socketHandler = new ReactWebSocketClient(url, protocol, session, {
+const socketHandler = new ReactWebSocketClient(url, protocol, {
 	specialActions: [
 		{
 			type: SpecialActionType.IGNORED,
@@ -107,7 +108,7 @@ To add user state, you'll need to add the following to the client init code:
 import { ReduxWebSocketClient, SpecialActionType } from "@bucky24/redux-websocket";
 // ... other imports
 
-const socketHandler = new ReactWebSocketClient(url, protocol, session, {
+const socketHandler = new ReactWebSocketClient(url, protocol, {
 	specialActions: [
 		{
 			type: SpecialActionType.USER_DATA,
@@ -175,6 +176,45 @@ const mapDispatchToProps = (dispatch) => {
 export default connect(mapStateToProps, mapDispatchToProps)(App);
 
 ```
+
+
+### Handling Session Codes After App Init
+
+It may be very useful to have your user not enter the code until later. This could be because you want to show them some UI before entering a code. Or, in the case of the first user to enter, perhaps you want to auto-generated the code that they need to share to other users.
+
+This gets somewhat complicated because the socket handler itself needs to create the main Redux store (due to setting initial state). This means you won't be able to use your main store until the user has entered the code, so this should be among the first things your application does.
+
+See the `delayed_connect_example` for a more in-depth example on how to do this.
+
+Essentially, your socket handler should be created in a way that can be acessed by your UI. Use the following code in your main app index:
+
+```
+import socketHandler from './path/to/your/handler';
+
+socketHandler.on('stateReceived', ({ initialState, reducers }) => {
+	// your normal app initialization, as above
+});
+
+render(
+	<PreSocketApp/>,
+	document.getElementById('root')
+);
+```
+
+Then inside PreSocketApp, somewhere you would need to have:
+```
+import socketHandler from './path/to/your/handler';
+
+class PreSocketApp extends React.Component {
+	handleSubmit(code) {
+		socketHandler.setAuthentication(code);
+	}
+	
+	// the rest of the class
+}
+```
+
+At this point, the system will attempt to authenticate with that code, and will load the correct initial state from the server. The main app initialization will fire, and the page will be reloaded.
 
 ## Similar Modules
 

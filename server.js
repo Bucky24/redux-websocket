@@ -113,16 +113,24 @@ const createSocket = (wss) => {
 		ws.on('close', () => {
 			const index = connections.indexOf(ws);
 			connections.splice(index, 1);
+			console.log("Connection closed. Total connections:", connections.length);
 			
 			const sessionConnections = connectionsBySession[mySession];
 			if (!sessionConnections) {
 				console.log(`Connection closed for "${mySession}". No connection array found.`);
+				return;
 			}
 			const index2 = sessionConnections.findIndex(({ conn }) => {
 				return conn === ws;
 			});
-			const { id: myID } = sessionConnections[index2];
-			sessionConnections.splice(index2, 1);
+			let myID;
+			if (index2 < 0) {
+				console.error(`Warning: Unable to find a session connection for our socket.`);
+			} else {
+				const obj = sessionConnections[index2];
+				myID = obj.id;
+				sessionConnections.splice(index2, 1);
+			}
 
 			console.log(`Connection closed for "${mySession}". Total:`, sessionConnections.length);
 			

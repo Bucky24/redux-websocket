@@ -1,3 +1,3 @@
 const ReduxSocketServer = require('../../server');
 
-ReduxSocketServer(5000);
+ReduxSocketServer.createWithPort(5000);

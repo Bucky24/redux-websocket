@@ -1,4 +1,4 @@
-import ReactWebSocketClient, { SpecialActionType } from "../../src/client";
+import { ReactWebSocketClient, SpecialActionType } from "@bucky24/redux-websocket";
 import React from 'react';
 import { Provider } from 'react-redux';
 import { createStore, applyMiddleware } from 'redux';
@@ -12,7 +12,6 @@ import { Constants as UserConstants } from './user_reducer';
 const socketHandler = new ReactWebSocketClient(
 	'ws://localhost:5000/',
 	'protocol',
-	'code',
 	{
 		specialActions: [
 			{
@@ -28,6 +27,8 @@ const socketHandler = new ReactWebSocketClient(
 		]
 	}
 );
+
+socketHandler.setAuthentication('code');
 
 socketHandler.setReducers(reducers);
 
