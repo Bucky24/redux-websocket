@@ -1,12 +1,13 @@
 {
 	"name": "@bucky24/redux-websocket",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"description": "Uses a websocket to sync redux actions to a server and to other clients to keep them in sync.",
 	"main": "src/index.js",
 	"scripts": {
 		"server": "node ./examples/server_example/server.js",
-		"run_basic_example": "webpack-dev-server --config ./examples/basic_example/webpack.config.js",
-		"run_delayed_connect_example": "webpack-dev-server --config ./examples/delayed_connect_example/webpack.config.js"
+		"basic_example": "webpack-dev-server --config ./examples/basic_example/webpack.config.js",
+		"delayed_connect_example": "webpack-dev-server --config ./examples/delayed_connect_example/webpack.config.js",
+		"complex_server_example": "webpack-dev-server --config ./examples/complex_server_example/webpack.config.js"
 	},
 	"repository": {
 		"type": "git",

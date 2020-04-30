@@ -216,8 +216,48 @@ class PreSocketApp extends React.Component {
 
 At this point, the system will attempt to authenticate with that code, and will load the correct initial state from the server. The main app initialization will fire, and the page will be reloaded.
 
+### Fetching State
+
+At any point, from the server, you can fetch the current state for any session by calling the `getState` method on the server socket.
+
+```
+import socket from './path/to/your/handler';
+
+async function foo() {
+	const state = await socket.getState();
+}
+```
+
+### Event Handling
+
+The socket server will emit various events. To listen for them, use the `on` method:
+
+```
+import socket from './path/to/your/handler';
+
+socket.on(event, (data) => {
+	// do something
+});
+
+```
+
+The various event types and the data they return can be found below:
+| Event | When | Callback Data |
+| ---- | ------ | ---- |
+| message | Fired when the websocket gets a message it does not know how to process. | An object containing "message", "session", and "id" (being the ID of the connection that fired the message) |
+
+### Custom Messages
+
+The websocket frontend client can be told to fire a custom message to the server. Such a message can be listened to with the "message" event handler.
+
+```
+import socket from './socket';
+
+socket.sendMessage(messageType, data);
+```
+
 ## Similar Modules
 
-The main module I've seen that appears similar is https://github.com/giantmachines/redux-websocket
+The main module I have seen that appears similar is https://github.com/giantmachines/redux-websocket
 
-The main difference here is that @giantmatchines/redux-websocket (and similar packages) uses redux to control the websocket, while @bucky24/redux-websocket uses the websocket to control redux.
+The main difference here is that `@giantmatchines/redux-websocket` (and similar packages) uses redux to control the websocket, while `@bucky24/redux-websocket` uses the websocket to control redux.

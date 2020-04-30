@@ -15,9 +15,12 @@ export const SpecialActionType = {
 };
 
 const PING_SEC = 5;
+const DEFAULT_SETTINGS = {
+	specialActions: [],
+};
 
 class ReduxWebSocketClient {
-	constructor(url, protocol, settings={}) {
+	constructor(url, protocol, settings=DEFAULT_SETTINGS) {
 		this.sessionID = null;
 		this._connected = false;
 		this._authenticated = false;
@@ -219,7 +222,9 @@ class ReduxWebSocketClient {
 				const newUserData = setUserData(data.connectionID, result);
 				this._store.dispatch(newUserData);
 			} else if (data.messageType === "getState") {
-				this.connectionID = data.connectionID;
+				if (data.connectionID !== undefined) {
+					this.connectionID = data.connectionID;
+				}
 				// we know at this point the server had no state for us,
 				// so we should just continue forward
 				this._authenticated = true;
@@ -257,6 +262,8 @@ class ReduxWebSocketClient {
 				this.send({
 					messageType: "setState",
 					state,
+					eventID: data.eventID,
+					connectionID: this.connectionID,
 				});
 				this.doPushUserState();
 			} else if (data.messageType === "setState") {
@@ -280,7 +287,9 @@ class ReduxWebSocketClient {
 				}
 			} else if (data.messageType === 'userLeft') {
 				console.log("Got message that user", data.connectionID, 'left');
-				this._store.dispatch(removeUser(data.connectionID));
+				if (this._store) {
+					this._store.dispatch(removeUser(data.connectionID));
+				}
 			} else if (data.messageType === 'setUserData') {
 				console.log("Got message with user state for ", data.connectionID);
 				const newData = {
@@ -307,6 +316,14 @@ class ReduxWebSocketClient {
 				console.log('Unknown message of type', data.messageType);
 			}
 		}
+	}
+	
+	sendMessage(type, data) {
+		console.log(`Sending generic message of type ${type}`);
+		this.send({
+			messageType: type,
+			...data
+		});
 	}
 	
 	send(data) {
