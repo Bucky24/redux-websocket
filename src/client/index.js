@@ -232,7 +232,8 @@ class ReduxWebSocketClient {
 				if (!this._store) {
 					console.log('Getting state without store');
 					const store = this.triggerEvent("stateReceived", {
-						initialState: {},
+						// we may have been given initial state from the server
+						initialState: data.initialState || {},
 						reducers: this.rootReducer,
 					});
 					this._store = store;

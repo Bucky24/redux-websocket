@@ -41,14 +41,18 @@ class Socket {
 		this.eventHandlers[event].push(cb);
 	}
 	
-	handleEvent(event, data) {
+	async handleEvent(event, data) {
 		if (!this.eventHandlers[event]) {
 			return;
 		}
 		
+		let result = null;
+		
 		this.eventHandlers[event].forEach((cb) => {
-			cb(data);
+			result = cb(data);
 		});
+		
+		return result;
 	}
 	
 	handleConnection(ws) {
@@ -112,6 +116,7 @@ class Socket {
 			} else {
 				console.log('Lost last session');
 				delete this.sessionMaster[session];
+				delete this.connectionsBySession[session];
 			}
 		}
 	}
@@ -178,20 +183,29 @@ class Socket {
 				});
 				console.log(`Connection authenticated to session "${session}". Given id ${connectionID}`);
 		
-				if (!this.sessionMaster[session]) {
-					// if there is no session data, we need to fetch it from this connection.
-					this.sessionMaster[session] = {
-						conn: ws,
-						id: connectionID,
-					};
-				}
-				console.log('Requesting state from master. New session?', isNewSession);
-				this.sessionMaster[session].conn.send(JSON.stringify({
-					_websocket_session: session,
-					messageType: "getState",
-					connectionID: this.sessionMaster[session].id,
-					newSession: isNewSession,
-				}));
+				(async () => {
+					let initialState = undefined;
+					if (!this.sessionMaster[session]) {
+						// if there is no master, first set this session as master
+						this.sessionMaster[session] = {
+							conn: ws,
+							id: connectionID,
+						};
+						// then try to hit our event handlers to load the initial state.
+						initialState = await this.handleEvent('getInitialState', {
+							session,
+							
+						});
+					}
+					console.log('Requesting state from master. New session?', isNewSession);
+					this.sessionMaster[session].conn.send(JSON.stringify({
+						_websocket_session: session,
+						messageType: "getState",
+						connectionID: this.sessionMaster[session].id,
+						newSession: isNewSession,
+						initialState,
+					}));
+				})()
 			} else if (messageObj.messageType === "setState") {
 				// push the state to all connected clients
 				// anyone already with state will just ignore the message

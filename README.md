@@ -244,7 +244,8 @@ socket.on(event, (data) => {
 The various event types and the data they return can be found below:
 | Event | When | Callback Data |
 | ---- | ------ | ---- |
-| message | Fired when the websocket gets a message it does not know how to process. | An object containing "message", "session", and "id" (being the ID of the connection that fired the message) |
+| message | Fired when the websocket gets a message it does not know how to process. | An object containing "message" and "id" (being the ID of the connection that fired the message) |
+| getInitialState | Fired when the first socket connects for a session. From here you can return an object that will make up the initial state passed into redux. Response can be a promise. | An object containining "session" |
 
 ### Custom Messages
 
