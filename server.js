@@ -88,6 +88,7 @@ class Socket {
 		const index2 = sessionConnections.findIndex(({ conn }) => {
 			return conn === ws;
 		});
+		console.log("Current session connections", sessionConnections.length);
 		let myID;
 		if (index2 < 0) {
 			console.error(`Warning: Unable to find a session connection for our socket.`);
@@ -97,7 +98,7 @@ class Socket {
 			sessionConnections.splice(index2, 1);
 		}
 
-		console.log(`Connection closed for "${session}". Total:`, sessionConnections.length);
+		console.log(`Connection closed for "${session}". Total remaining:`, sessionConnections.length);
 		
 		if (sessionConnections.length > 0) {
 			// broadcast leader to the system
@@ -173,9 +174,22 @@ class Socket {
 					this.connectionsBySession[session] = [];
 					isNewSession = true;
 				}
+				
 		
-				const connectionID = this.connection_id;
-				this.connection_id ++;
+				let connectionID;
+				
+				// try and find an old ID for this ws if possible
+				const oldData = this.connectionsBySession[session].find((obj) => {
+					return obj.ws = ws;
+				});
+				
+				if (oldData) {
+					connectionID = oldData.id;
+					console.log(`Found existing connection with id ${connectionID}`);
+				} else {
+					connectionID = this.connection_id;
+					this.connection_id ++;
+				}
 				this.connectionData[ws].id = connectionID;
 				this.connectionsBySession[session].push({
 					conn: ws,
@@ -194,7 +208,6 @@ class Socket {
 						// then try to hit our event handlers to load the initial state.
 						initialState = await this.handleEvent('getInitialState', {
 							session,
-							
 						});
 					}
 					console.log('Requesting state from master. New session?', isNewSession);
@@ -244,6 +257,9 @@ class Socket {
 					messageType: 'pong',
 					time: messageObj.time,
 				}));
+			} else  if (messageObj.messageType === "clientLog") {
+				const { id } = this.connectionData[ws];
+				console.log(`Received clientLog from ${id}: ${JSON.stringify(messageObj.data)}`);
 			} else {
 				// in this case we get an unexpected event. So fire off a "message" event to any listeners
 				console.log(`Received custom message type ${messageObj.messageType}`);
