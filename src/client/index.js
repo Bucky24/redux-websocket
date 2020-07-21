@@ -127,8 +127,11 @@ class ReduxWebSocketClient {
 	
 	// This function should be called once a sessionID has been set.
 	doAuth() {
+		const currentState = this._store.getState();
+		const id = getConnectionID(currentState);
 		this.send({
-			messageType: 'getState'
+			messageType: 'getState',
+			connectionID: id,
 		});
 		
 		// if we have a store already, we're reconnecting.
@@ -170,7 +173,6 @@ class ReduxWebSocketClient {
         webSocket.onclose = (event) => {
 			this._connected = false;
 			if (this._store) {
-				this._store.dispatch(setConnectionID(null));
 				this._store.dispatch(setConnected(false));
 				this._store.dispatch(clearUserData());
 			}

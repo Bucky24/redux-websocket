@@ -175,12 +175,13 @@ class Socket {
 					isNewSession = true;
 				}
 				
+				const { connectionID: existingID } = messageObj;
 		
 				let connectionID;
 				
 				// try and find an old ID for this ws if possible
 				const oldData = this.connectionsBySession[session].find((obj) => {
-					return obj.ws = ws;
+					return obj.id === existingID;
 				});
 				
 				if (oldData) {
