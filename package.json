@@ -1,6 +1,6 @@
 {
 	"name": "@bucky24/redux-websocket",
-	"version": "0.3.2",
+	"version": "0.3.3",
 	"description": "Uses a websocket to sync redux actions to a server and to other clients to keep them in sync.",
 	"main": "src/index.js",
 	"scripts": {
@@ -21,6 +21,7 @@
 	"license": "MIT",
 	"homepage": "https://github.com/Bucky24/redux-websocket#readme",
 	"devDependencies": {
+		"@babel/compat-data": "^7.10.5",
 		"@babel/core": "^7.8.7",
 		"@babel/plugin-proposal-class-properties": "^7.8.3",
 		"@babel/preset-env": "^7.8.7",
