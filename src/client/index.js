@@ -30,7 +30,6 @@ class ReduxWebSocketClient {
 		this.eventHandlers = {};
 		this.rootReducer = null;
 		this.connectionID = null;
-		this.pushUserState = false;
 		
 		this.debug = !!settings.debug;
 		
@@ -136,12 +135,6 @@ class ReduxWebSocketClient {
 			messageType: 'getState',
 			connectionID: id,
 		});
-		
-		// if we have a store already, we're reconnecting.
-		// repush the user data
-		if (this._store) {
-			this.pushUserState = true;
-		}
 	}
 	
 	handleConnection() {
@@ -253,6 +246,9 @@ class ReduxWebSocketClient {
 				};
 				this._store.dispatch(setConnectionID(this.connectionID));
 				this._store.dispatch(setConnected(true));
+				// remove existing user data-in case there are inconsistencies, let's not
+				// pollute new connections.
+				state.__websocket.userData = [];
 				// now strip out all user data
 				for (const dataKey of this.userDataTree) {
 					delete state[dataKey];
@@ -271,6 +267,8 @@ class ReduxWebSocketClient {
 					eventID: data.eventID,
 					connectionID: this.connectionID,
 				});
+				// whoever requested state probably wants to know
+				// who we are
 				this.doPushUserState();
 			} else if (data.messageType === "setState") {
 				// emit event on state received
@@ -287,10 +285,9 @@ class ReduxWebSocketClient {
 				this._store.dispatch(setConnectionID(this.connectionID));
 				this._store.dispatch(setConnected(true));
 				
-				if (this.pushUserState) {
-					this.doPushUserState();
-					this.pushUserState = false;
-				}
+				// push the user state-we probably have a new connection
+				// and they may need to know about us
+				this.doPushUserState();
 			} else if (data.messageType === 'userLeft') {
 				console.log("Got message that user", data.connectionID, 'left');
 				if (this._store) {

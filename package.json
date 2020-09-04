@@ -1,6 +1,6 @@
 {
 	"name": "@bucky24/redux-websocket",
-	"version": "0.3.3",
+	"version": "0.3.4",
 	"description": "Uses a websocket to sync redux actions to a server and to other clients to keep them in sync.",
 	"main": "src/index.js",
 	"scripts": {

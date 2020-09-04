@@ -77,7 +77,6 @@ class Socket {
 		this.connections.splice(index, 1);
 		const connectionData = this.connectionData[ws];
 		const session = connectionData ? connectionData.session : null;
-		const identifier = connectionData ? connectionData.id : null;
 		console.log("Connection closed. Total connections:", this.connections.length);
 		
 		const sessionConnections = this.connectionsBySession[session];
@@ -98,14 +97,14 @@ class Socket {
 			sessionConnections.splice(index2, 1);
 		}
 
-		console.log(`Connection closed for "${session}". Total remaining:`, sessionConnections.length);
+		console.log(`Connection closed for "${session}" (${myID}). Total remaining:`, sessionConnections.length);
 		
 		if (sessionConnections.length > 0) {
 			// broadcast leader to the system
 			sessionConnections.forEach(({ conn }) => {
 				conn.send(JSON.stringify({
 					messageType: 'userLeft',
-					connectionID: identifier,
+					connectionID: myID,
 				}));
 			});
 		}
